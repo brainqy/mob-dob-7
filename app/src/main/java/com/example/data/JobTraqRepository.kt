@@ -249,6 +249,30 @@ class JobTraqRepository(private val sessionManager: SessionManager? = null) {
         _referrals.value = emptyList()
         _referralLeaderboard.value = emptyList()
         _referralActivityLogs.value = emptyList()
+        _blogPosts.value = listOf(
+            BlogPostEntity(
+                id = "test-blog-1",
+                title = "Mastering Jetpack Compose Performance",
+                content = "Jetpack Compose makes building beautiful Android UIs quick and easy, but performance optimization is critical. Remember to use remember, derivedStateOf, and correct keying in LazyColumn to avoid redraw lags and junk frames.",
+                excerpt = "Optimizing composition, layout, and drawing phases in Compose.",
+                author = "Alex Rivera",
+                date = "2026-08-01T10:00:00Z",
+                imageUrl = "https://placehold.co/800x400.png",
+                tags = listOf("Compose", "Performance", "Kotlin"),
+                bookmarkedBy = listOf("user-alex-101")
+            ),
+            BlogPostEntity(
+                id = "test-blog-2",
+                title = "Advanced Retrofit and OkHttp Interceptors",
+                content = "Interceptors are a powerful mechanism in OkHttp that can monitor, rewrite, and retry calls. Here we explore writing a custom token refresh interceptor for secure authentication and auto token rejuvenation.",
+                excerpt = "Building robust token refresh and logging interceptors.",
+                author = "Jordan Smith",
+                date = "2026-07-28T14:30:00Z",
+                imageUrl = null,
+                tags = listOf("Networking", "Retrofit", "OkHttp"),
+                bookmarkedBy = emptyList()
+            )
+        )
     }
 
     // Base API URL & Multi-tenant state
@@ -1580,6 +1604,21 @@ class JobTraqRepository(private val sessionManager: SessionManager? = null) {
 
     suspend fun createBlogPost(title: String, content: String, excerpt: String, tags: List<String>, imageUrl: String?): Pair<Boolean, String> {
         return withContext(Dispatchers.IO) {
+            if (_currentEnvironment.value.isDummyDataAllowed) {
+                val newBlog = BlogPostEntity(
+                    id = "blog-${UUID.randomUUID().toString().take(6)}",
+                    title = title,
+                    content = content,
+                    excerpt = excerpt,
+                    author = "You",
+                    date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) + "T12:00:00Z",
+                    imageUrl = imageUrl,
+                    tags = tags,
+                    bookmarkedBy = emptyList()
+                )
+                _blogPosts.value = listOf(newBlog) + _blogPosts.value
+                return@withContext Pair(true, "Blog post created successfully! (Sandbox Mode)")
+            }
             try {
                 val apiService = RetrofitClient.createApiService(_baseUrl.value, sessionManager)
                 val res = apiService.createBlogPost(
@@ -1605,6 +1644,22 @@ class JobTraqRepository(private val sessionManager: SessionManager? = null) {
 
     suspend fun toggleBookmarkBlogPost(postId: String): Pair<Boolean, String> {
         return withContext(Dispatchers.IO) {
+            if (_currentEnvironment.value.isDummyDataAllowed) {
+                _blogPosts.value = _blogPosts.value.map {
+                    if (it.id == postId) {
+                        val currentlyBookmarked = it.bookmarkedBy.contains("user-alex-101")
+                        val newBookmarkedBy = if (currentlyBookmarked) {
+                            it.bookmarkedBy - "user-alex-101"
+                        } else {
+                            it.bookmarkedBy + "user-alex-101"
+                        }
+                        it.copy(bookmarkedBy = newBookmarkedBy)
+                    } else it
+                }
+                val isBookmarked = _blogPosts.value.find { it.id == postId }?.bookmarkedBy?.contains("user-alex-101") == true
+                val msg = if (isBookmarked) "Bookmark added! (Sandbox Mode)" else "Bookmark removed! (Sandbox Mode)"
+                return@withContext Pair(true, msg)
+            }
             try {
                 val apiService = RetrofitClient.createApiService(_baseUrl.value, sessionManager)
                 val res = apiService.bookmarkBlogPost(ApiBlogBookmarkRequest(postId))

@@ -777,11 +777,11 @@ fun QuizPlayerView(
                                     when {
                                         isCorrect -> Color(0xFF14532D) // Dark Green text for high contrast on light green
                                         isSelected && !isCorrect -> Color(0xFF7F1D1D) // Dark Red text for high contrast on light red
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        else -> MaterialTheme.colorScheme.onSurface
                                     }
                                 }
                                 isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                else -> MaterialTheme.colorScheme.onSurface
                             }
 
                             val badgeBgColor = when {
@@ -2712,7 +2712,7 @@ fun ReviewModeView(
                         val optionTextColor = when {
                             isCorrectKey -> Color(0xFF14532D)
                             userChosen && !isCorrectKey -> Color(0xFF7F1D1D)
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            else -> MaterialTheme.colorScheme.onSurface
                         }
 
                         val borderColor = when {
