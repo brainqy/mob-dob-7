@@ -62,12 +62,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import com.example.data.AuthDatabase
+import com.example.data.DailyGoalEntity
+import com.example.data.DailyGoalRepository
+import com.example.ui.components.DailyGoalsComponent
 import com.example.ui.components.InterviewDashboardComponent
 import com.example.ui.components.RecentQuizzesSection
 import androidx.compose.ui.Modifier
@@ -128,7 +135,7 @@ fun Phase1JobTrackerScreen(
     onAddOffer: (OfferComparisonEntity) -> Unit = {},
     onDeleteOffer: (String) -> Unit = {}
 ) {
-    var selectedSubTab by remember { mutableIntStateOf(0) } // 0: Interview Dashboard, 1: Pipeline Board, 2: Offer Evaluator
+    var selectedSubTab by remember { mutableIntStateOf(0) } // 0: Interview Dashboard, 1: Daily Goals, 2: Pipeline Board, 3: Offer Evaluator
     var isKanbanMode by remember { mutableStateOf(false) }
     var selectedStatusFilter by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
@@ -136,6 +143,16 @@ fun Phase1JobTrackerScreen(
     var isAddOfferDialogOpen by remember { mutableStateOf(false) }
     var interviewRefreshTick by remember { mutableStateOf(0L) }
     var isInterviewRefreshing by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val db = remember(context) { AuthDatabase.getDatabase(context) }
+    val dailyGoalRepo = remember(db) { DailyGoalRepository(db.dailyGoalDao()) }
+    val todayGoals by dailyGoalRepo.getTodayGoals().collectAsState(initial = emptyList())
+
+    LaunchedEffect(Unit) {
+        dailyGoalRepo.seedDefaultGoalsIfEmpty()
+    }
 
     val statusCategories = listOf("All", "Saved", "Applied", "Incoming Interview", "Offered", "Cancelled", "Rejected")
 
@@ -179,7 +196,7 @@ fun Phase1JobTrackerScreen(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (selectedSubTab == 2) {
+                if (selectedSubTab == 3) {
                     Button(
                         onClick = { isAddOfferDialogOpen = true },
                         shape = RoundedCornerShape(20.dp),
@@ -216,7 +233,7 @@ fun Phase1JobTrackerScreen(
                         .fillMaxWidth()
                         .padding(4.dp)
                 ) {
-                    val tabs = listOf("Interview Hub", "Pipeline Board", "Offer Evaluator")
+                    val tabs = listOf("Interview Hub", "Daily Goals", "Pipeline Board", "Offer Evaluator")
                     tabs.forEachIndexed { idx, label ->
                         Surface(
                             modifier = Modifier
@@ -275,7 +292,47 @@ fun Phase1JobTrackerScreen(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 }
-            } else if (selectedSubTab == 2) {
+            } else if (selectedSubTab == 1) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    DailyGoalsComponent(
+                        goals = todayGoals,
+                        onToggleGoal = { goal ->
+                            scope.launch { dailyGoalRepo.toggleGoalCompleted(goal) }
+                        },
+                        onIncrement = { goal ->
+                            scope.launch { dailyGoalRepo.incrementProgress(goal) }
+                        },
+                        onDecrement = { goal ->
+                            scope.launch { dailyGoalRepo.decrementProgress(goal) }
+                        },
+                        onDeleteGoal = { id ->
+                            scope.launch { dailyGoalRepo.deleteGoal(id) }
+                        },
+                        onAddCustomGoal = { title, category, target ->
+                            scope.launch {
+                                dailyGoalRepo.addGoal(
+                                    DailyGoalEntity(
+                                        title = title,
+                                        category = category,
+                                        targetCount = target,
+                                        completedCount = 0,
+                                        isCompleted = false,
+                                        date = DailyGoalRepository.getTodayDateString()
+                                    )
+                                )
+                            }
+                        },
+                        onSeedPresets = {
+                            scope.launch { dailyGoalRepo.seedDefaultGoalsIfEmpty() }
+                        }
+                    )
+                }
+            } else if (selectedSubTab == 3) {
                 OfferEvaluatorSection(
                     offers = offers,
                     onDeleteOffer = onDeleteOffer,

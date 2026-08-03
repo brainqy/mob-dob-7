@@ -72,7 +72,7 @@ fun AuthApp(viewModel: AuthViewModel = viewModel()) {
     val context = LocalContext.current
 
     val systemDark = isSystemInDarkTheme()
-    val isDark = systemDark || uiState.darkThemeOverride
+    val isDark = uiState.darkThemeOverride
 
     LaunchedEffect(uiState.currentLocale) {
         val activity = (context as? ComponentActivity) ?: return@LaunchedEffect
