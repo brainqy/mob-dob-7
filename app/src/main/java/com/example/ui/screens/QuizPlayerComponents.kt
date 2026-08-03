@@ -695,7 +695,8 @@ fun QuizPlayerView(
             // 2. MAIN SCROLLABLE QUESTION CONTENT
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .verticalScroll(rememberScrollState())
             ) {
@@ -771,6 +772,41 @@ fun QuizPlayerView(
                                 else -> MaterialTheme.colorScheme.surfaceVariant
                             }
 
+                            val optionTextColor = when {
+                                isInstantFeedbackEnabled && selectedOpt != null -> {
+                                    when {
+                                        isCorrect -> Color(0xFF14532D) // Dark Green text for high contrast on light green
+                                        isSelected && !isCorrect -> Color(0xFF7F1D1D) // Dark Red text for high contrast on light red
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                }
+                                isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+
+                            val badgeBgColor = when {
+                                isInstantFeedbackEnabled && selectedOpt != null -> {
+                                    when {
+                                        isCorrect -> Color(0xFF166534)
+                                        isSelected && !isCorrect -> Color(0xFF991B1B)
+                                        else -> MaterialTheme.colorScheme.surface
+                                    }
+                                }
+                                isSelected -> MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.surface
+                            }
+
+                            val badgeTextColor = when {
+                                isInstantFeedbackEnabled && selectedOpt != null -> {
+                                    when {
+                                        isCorrect || (isSelected && !isCorrect) -> Color.White
+                                        else -> MaterialTheme.colorScheme.onSurface
+                                    }
+                                }
+                                isSelected -> Color.White
+                                else -> MaterialTheme.colorScheme.onSurface
+                            }
+
                             val optionBorder = when {
                                 isInstantFeedbackEnabled && selectedOpt != null -> {
                                     when {
@@ -803,7 +839,7 @@ fun QuizPlayerView(
                                     // Choice Option Letter Badge (A, B, C, D)
                                     Surface(
                                         shape = CircleShape,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                        color = badgeBgColor,
                                         modifier = Modifier.size(28.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
@@ -811,7 +847,7 @@ fun QuizPlayerView(
                                                 text = optionLetter,
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                                    color = badgeTextColor
                                                 )
                                             )
                                         }
@@ -822,8 +858,8 @@ fun QuizPlayerView(
                                     Text(
                                         text = optionText,
                                         style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = optionTextColor
                                         ),
                                         modifier = Modifier.weight(1f)
                                     )
@@ -1200,11 +1236,20 @@ fun QuizPlayerView(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-                // NAVIGATION BUTTONS (Previous, Next, Submit)
+            // 3. STICKY BOTTOM NAVIGATION BAR
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                shadowElevation = 6.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1217,6 +1262,18 @@ fun QuizPlayerView(
                         Icon(Icons.AutoMirrored.Filled.NavigateBefore, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Previous")
+                    }
+
+                    // Question palette drawer toggle button
+                    IconButton(
+                        onClick = { showPaletteDrawer = true },
+                        modifier = Modifier.testTag("open_question_palette_sticky_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.GridOn,
+                            contentDescription = "Question Grid Palette",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
 
                     if (currentIndex < quiz.questions.size - 1) {
@@ -1242,8 +1299,6 @@ fun QuizPlayerView(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(30.dp))
             }
         }
 
@@ -2590,155 +2645,176 @@ fun ReviewModeView(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
             .testTag("review_mode_view")
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBackToDashboard) {
-                    Icon(Icons.AutoMirrored.Filled.NavigateBefore, contentDescription = "Back")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBackToDashboard) {
+                        Icon(Icons.AutoMirrored.Filled.NavigateBefore, contentDescription = "Back")
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Column {
+                        Text(
+                            text = "Question Review Mode",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "${reviewIndex + 1} of ${quiz.questions.size} Questions",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.width(4.dp))
-                Column {
+
+                OutlinedButton(
+                    onClick = onBackToDashboard,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Exit Review")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Question Review Mode",
+                        text = currentQ.questionText,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
-                    Text(
-                        text = "${reviewIndex + 1} of ${quiz.questions.size} Questions",
-                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
-                    )
-                }
-            }
 
-            OutlinedButton(
-                onClick = onBackToDashboard,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Exit Review")
-            }
-        }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+                    currentQ.options.forEachIndexed { optIndex, optionText ->
+                        val userChosen = userAnswers[currentQ.id] == optIndex
+                        val isCorrectKey = optIndex == currentQ.correctOptionIndex
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(18.dp)) {
-                Text(
-                    text = currentQ.questionText,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                        val cardColor = when {
+                            isCorrectKey -> Color(0xFFDCFCE7)
+                            userChosen && !isCorrectKey -> Color(0xFFFEE2E2)
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                        val optionTextColor = when {
+                            isCorrectKey -> Color(0xFF14532D)
+                            userChosen && !isCorrectKey -> Color(0xFF7F1D1D)
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
 
-                currentQ.options.forEachIndexed { optIndex, optionText ->
-                    val userChosen = userAnswers[currentQ.id] == optIndex
-                    val isCorrectKey = optIndex == currentQ.correctOptionIndex
+                        val borderColor = when {
+                            isCorrectKey -> BorderStroke(1.5.dp, Color(0xFF166534))
+                            userChosen && !isCorrectKey -> BorderStroke(1.5.dp, Color(0xFF991B1B))
+                            else -> null
+                        }
 
-                    val cardColor = when {
-                        isCorrectKey -> Color(0xFFDCFCE7)
-                        userChosen && !isCorrectKey -> Color(0xFFFEE2E2)
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    }
-
-                    val borderColor = when {
-                        isCorrectKey -> BorderStroke(1.5.dp, Color(0xFF166534))
-                        userChosen && !isCorrectKey -> BorderStroke(1.5.dp, Color(0xFF991B1B))
-                        else -> null
-                    }
-
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        color = cardColor,
-                        shape = RoundedCornerShape(12.dp),
-                        border = borderColor
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            color = cardColor,
+                            shape = RoundedCornerShape(12.dp),
+                            border = borderColor
                         ) {
-                            Text(
-                                text = "${('A' + optIndex)}. $optionText",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = if (isCorrectKey || userChosen) FontWeight.Bold else FontWeight.Normal
-                                ),
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (isCorrectKey) {
-                                Text(text = "✓ Correct Key", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
-                            } else if (userChosen) {
-                                Text(text = "✗ Your Choice", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B))
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${('A' + optIndex)}. $optionText",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = if (isCorrectKey || userChosen) FontWeight.Bold else FontWeight.Medium,
+                                        color = optionTextColor
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isCorrectKey) {
+                                    Text(text = "✓ Correct Key", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                } else if (userChosen) {
+                                    Text(text = "✗ Your Choice", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B))
+                                }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // DETAILED EXPLANATION BOX
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = "Comprehensive Explanation",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                    // DETAILED EXPLANATION BOX
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text(
+                                text = "Comprehensive Explanation",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
                             )
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = currentQ.sampleAnswer,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                lineHeight = 18.sp
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = currentQ.sampleAnswer,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    lineHeight = 18.sp
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+        // STICKY BOTTOM BUTTONS IN REVIEW MODE
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp,
+            shadowElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            OutlinedButton(
-                onClick = { if (reviewIndex > 0) reviewIndex-- },
-                enabled = reviewIndex > 0,
-                shape = RoundedCornerShape(14.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Previous")
-            }
-
-            if (reviewIndex < quiz.questions.size - 1) {
-                Button(
-                    onClick = { reviewIndex++ },
+                OutlinedButton(
+                    onClick = { if (reviewIndex > 0) reviewIndex-- },
+                    enabled = reviewIndex > 0,
                     shape = RoundedCornerShape(14.dp)
                 ) {
-                    Text("Next Question")
+                    Text("Previous")
                 }
-            } else {
-                Button(
-                    onClick = onBackToDashboard,
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("Finish Review")
+
+                if (reviewIndex < quiz.questions.size - 1) {
+                    Button(
+                        onClick = { reviewIndex++ },
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Next Question")
+                    }
+                } else {
+                    Button(
+                        onClick = onBackToDashboard,
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Finish Review")
+                    }
                 }
             }
         }

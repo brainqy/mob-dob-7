@@ -135,9 +135,10 @@ fun JobTraqTopBar(
                             )
                         )
                         Text(
-                            text = "Native Mobile Platform",
+                            text = "career simplified",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
                             )
                         )
                     }

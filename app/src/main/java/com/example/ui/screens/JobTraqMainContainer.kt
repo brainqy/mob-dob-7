@@ -196,7 +196,7 @@ fun JobTraqMainContainer(
                                 )
                             )
                             Text(
-                                text = "Navigation Menu",
+                                text = "career simplified",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
